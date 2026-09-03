@@ -1,0 +1,27 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from carla_msgs/msg/CarlaEgoVehicleControl.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module carla_msgs {
+  module msg {
+    struct CarlaEgoVehicleControl {
+      std_msgs::msg::Header header;
+
+      float throttle;
+
+      float steer;
+
+      float brake;
+
+      boolean hand_brake;
+
+      boolean reverse;
+
+      int32 gear;
+
+      boolean manual_gear_shift;
+    };
+  };
+};
