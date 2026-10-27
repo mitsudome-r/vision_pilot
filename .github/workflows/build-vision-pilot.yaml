@@ -53,7 +53,7 @@ jobs:
           if [ "${{ matrix.ros2 }}" = "ON" ]; then
             . /opt/ros/jazzy/setup.bash
           fi
-          cmake -S VisionPilot -B build \
+          cmake -S VisionPilot -B VisionPilot/build \
             -DCMAKE_BUILD_TYPE=Release \
             -DONNXRUNTIME_ROOT="${ONNXRUNTIME_ROOT}" \
             -DGPU=OFF \
@@ -63,5 +63,5 @@ jobs:
         shell: bash
 
       - name: Build
-        run: cmake --build build -j "$(nproc)"
+        run: cmake --build VisionPilot/build -j "$(nproc)"
         shell: bash
