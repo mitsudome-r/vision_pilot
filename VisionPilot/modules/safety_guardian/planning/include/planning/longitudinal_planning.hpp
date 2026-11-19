@@ -6,7 +6,7 @@ extern double dt;   // 50Hz control period — still used by planning.cpp
 class LongitudinalPlanner {
 public:
     struct Config {
-        double speed_limit;  // m/s
+        double speed_limit = 33.3;  // m/s
         double a     = 1.5;    // max comfortable acceleration  (m/s²)
         double b     = 3.0;    // comfortable deceleration      (m/s²)
         double T     = 1.5;    // desired time-headway          (s)

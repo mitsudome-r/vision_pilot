@@ -5,14 +5,30 @@
 // Spatial step size matching the spatial Lateral MPC horizon step (meters)
 constexpr double DS = 0.5;
 
+namespace {
+Planner::Config make_legacy_config(const double speed_limit, const double L)
+{
+    Planner::Config c;
+    c.speed_limit = speed_limit;
+    c.wheelbase = L;
+    return c;
+}
+}  // namespace
+
 Planner::Planner(const double speed_limit, const double Lf)
-    : L_(Lf)
+    : Planner(make_legacy_config(speed_limit, Lf))
+{
+}
+
+Planner::Planner(const Config& config)
+    : L_(config.wheelbase)
       , longitudinal_planner([&]
       {
-          LongitudinalPlanner::Config c;
-          c.speed_limit = speed_limit;
+          LongitudinalPlanner::Config c = config.longitudinal;
+          c.speed_limit = config.speed_limit;
           return c;
       }())
+      , lateral_planner(config.lateral)
 {
 }
 
@@ -31,7 +47,8 @@ Plan Planner::compute_plan(
     constexpr double RATE_ALPHA = 0.6; // EMA smoothing factor for dkappa_ds
     constexpr double RATE_MAX = 0.15;   // Clamp on |d(kappa)/ds| (1/m^2)
 
-    const double KAPPA_MAX = std::tan(0.436332) / L_; // Maximum achievable curvature (~0.175 /m)
+    // Maximum achievable curvature from the configured tyre-angle limit.
+    const double KAPPA_MAX = std::tan(lateral_planner.config().max_steer_angle) / L_;
 
     // Compute spatial derivative d(kappa)/ds using vehicle displacement between loop cycles
     double dkappa_ds = 0.0;

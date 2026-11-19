@@ -41,7 +41,16 @@ struct Config {
     std::string vehicle_acceleration_topic;
 
     double speed_limit;
-    double L;
+    double L;   // Wheelbase (m)
+
+    // ── Vehicle / planner tuning (defaults = original passenger-car values) ──
+    double max_steer_angle     = 0.442;   // tyre-angle limit (rad)
+    double understeer_gradient = 0.0015;  // K_us (rad / (m/s^2))
+    double lon_max_accel       = 1.5;     // IDM a  (m/s^2)
+    double lon_comfort_decel   = 3.0;     // IDM b  (m/s^2)
+    double lon_time_headway    = 1.5;     // IDM T  (s)
+    double lon_min_gap         = 2.0;     // IDM s0 (m)
+    double lon_road_friction   = 0.2;     // mu used for curve speed limit
 
     bool visualization_on = false;
     bool webrtc_on = false;

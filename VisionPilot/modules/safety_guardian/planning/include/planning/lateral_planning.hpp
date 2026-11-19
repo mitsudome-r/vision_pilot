@@ -9,7 +9,17 @@ extern size_t N;
 
 class LateralPlanner {
 public:
+    struct Config {
+        // Physical tyre-angle limit used as the MPC bound (rad).
+        // Default (~23 deg) matches the original passenger-car tuning.
+        double max_steer_angle     = 0.442;
+        // Understeer gradient K_us (rad / (m/s^2)) used in the steering feed-forward.
+        // Passenger cars ~0.001-0.003; heavy trucks are typically larger.
+        double understeer_gradient = 0.0015;
+    };
+
     LateralPlanner();
+    explicit LateralPlanner(const Config& config);
     ~LateralPlanner();
 
     // Solve the MPC for the steering sequence.
@@ -29,6 +39,11 @@ public:
                                         const Eigen::VectorXd& state,
                                         const Eigen::VectorXd& v_schedule,
                                         const Eigen::VectorXd& kappa_schedule);
+
+    const Config& config() const { return config_; }
+
+private:
+    Config config_;
 };
 
 #endif //VISIONPILOT_LATERAL_HPP

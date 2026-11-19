@@ -9,7 +9,17 @@
 
 class Planner {
 public:
+    struct Config {
+        double speed_limit = 33.3;   // m/s
+        // Wheelbase (m) used by the kinematic bicycle model: kappa = tan(delta) / L.
+        double wheelbase   = 2.860;
+        LateralPlanner::Config      lateral;
+        LongitudinalPlanner::Config longitudinal;
+    };
+
+    // Legacy constructor (passenger-car defaults for everything except speed_limit / L).
     Planner(double speed_limit, double Lf);
+    explicit Planner(const Config& config);
 
     // Unified longitudinal + lateral plan.
     //
@@ -41,7 +51,7 @@ public:
         double cipo_distance);
 
 private:
-    double L_;            // Front-axle to CoG (m)
+    double L_;            // Wheelbase (m)
 
     // LongitudinalPlanner::Config cfg_;
     LongitudinalPlanner         longitudinal_planner;

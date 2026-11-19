@@ -21,11 +21,12 @@ class FG_eval
 public:
     double L_;
     double ds_;
+    double K_us_;
     VectorXd v_schedule;
     VectorXd kappa_schedule;
 
-    FG_eval(double L, double ds, VectorXd v_sched, VectorXd kappa_sched)
-        : L_(L), ds_(ds), v_schedule(std::move(v_sched)), kappa_schedule(std::move(kappa_sched))
+    FG_eval(double L, double ds, double K_us, VectorXd v_sched, VectorXd kappa_sched)
+        : L_(L), ds_(ds), K_us_(K_us), v_schedule(std::move(v_sched)), kappa_schedule(std::move(kappa_sched))
     {
     }
 
@@ -41,7 +42,8 @@ public:
         // UNDERSTEER GRADIENT (K_us):
         // Accounts for tire slip angle under centripetal lateral acceleration (a_y = v^2 * kappa).
         // Typical passenger car K_us is around 0.001 - 0.003 rad/(m/s^2).
-        constexpr double K_us = 0.0015;
+        // Configurable via LateralPlanner::Config::understeer_gradient.
+        const double K_us = K_us_;
 
         // 1. CURVATURE-AWARE STATE WEIGHTS:
         // On heavy curves, boost CTE tracking weight so staying centered outweighs steering smoothness.
@@ -118,6 +120,7 @@ public:
 };
 
 LateralPlanner::LateralPlanner() = default;
+LateralPlanner::LateralPlanner(const Config& config) : config_(config) {}
 LateralPlanner::~LateralPlanner() = default;
 
 std::vector<double> LateralPlanner::compute_steering(const double L,
@@ -168,7 +171,7 @@ std::vector<double> LateralPlanner::compute_steering(const double L,
     }
 
     // Warm-start steering at feedforward angles + understeer offset
-    constexpr double K_us = 0.0015;
+    const double K_us = config_.understeer_gradient;
     const double v2 = v_curr * v_curr;
     for (size_t i = 0; i < N - 1; ++i)
     {
@@ -187,8 +190,8 @@ std::vector<double> LateralPlanner::compute_steering(const double L,
     // Physical steering limits (rad)
     for (int i = delta_start; i < (int)n_vars; i++)
     {
-        vars_lb[i] = -0.442; // ~23 degrees wheel angle
-        vars_ub[i] =  0.442;
+        vars_lb[i] = -config_.max_steer_angle;
+        vars_ub[i] =  config_.max_steer_angle;
     }
 
     Dvector con_lb(n_constraints), con_ub(n_constraints);
@@ -197,7 +200,7 @@ std::vector<double> LateralPlanner::compute_steering(const double L,
     con_lb[epsi_start]       = con_ub[epsi_start]       = epsi;
     con_lb[kappa_road_start] = con_ub[kappa_road_start] = kappa_road;
 
-    FG_eval fg_eval(L, ds, v_schedule, kappa_schedule);
+    FG_eval fg_eval(L, ds, config_.understeer_gradient, v_schedule, kappa_schedule);
 
     std::string options;
     options += "Integer print_level 0\n";

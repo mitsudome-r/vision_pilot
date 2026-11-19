@@ -76,7 +76,20 @@ int main(int argc, char** argv)
     ImagePreprocessor preprocessor;
     ve::OnnxEngine engine(cfg.engine);
     vm::InferencePipeline pipeline(engine, cfg.inference);
-    Planner planner(cfg.speed_limit, cfg.L);
+    Planner::Config planner_cfg;
+    planner_cfg.speed_limit                  = cfg.speed_limit;
+    planner_cfg.wheelbase                    = cfg.L;
+    planner_cfg.lateral.max_steer_angle      = cfg.max_steer_angle;
+    planner_cfg.lateral.understeer_gradient  = cfg.understeer_gradient;
+    planner_cfg.longitudinal.a               = cfg.lon_max_accel;
+    planner_cfg.longitudinal.b               = cfg.lon_comfort_decel;
+    planner_cfg.longitudinal.T               = cfg.lon_time_headway;
+    planner_cfg.longitudinal.s0              = cfg.lon_min_gap;
+    planner_cfg.longitudinal.mu              = cfg.lon_road_friction;
+    Planner planner(planner_cfg);
+    VP_INFO("[Planner] L=%.3f m  max_steer=%.3f rad  K_us=%.4f  IDM(a=%.2f b=%.2f T=%.2f s0=%.2f)  v_max=%.1f m/s",
+            cfg.L, cfg.max_steer_angle, cfg.understeer_gradient, cfg.lon_max_accel,
+            cfg.lon_comfort_decel, cfg.lon_time_headway, cfg.lon_min_gap, cfg.speed_limit);
     if (cfg.rrd_on) logging::Rerun::init(cfg.rrd_log);
 
     // ── Init visualization assets once based on mode ──────────────────────────
