@@ -40,6 +40,30 @@ target_link_libraries(VisionPilot
 target_link_options(VisionPilot PRIVATE -Wl,--allow-shlib-undefined)
 
 # Installation rules
+if (ENABLE_ROS2_INTERFACE)
+    # ─── ROS 2 layout (colcon): ros2 run vision_pilot VisionPilot ────────────────
+    #   lib/vision_pilot/VisionPilot
+    #   share/vision_pilot/{config,assets/icons,modules/models/weights,launch}
+    # Resources are located at runtime through VISIONPILOT_SHARE_DIR (set by the launch file).
+    set(VP_ROS_PKG vision_pilot)
+    set_target_properties(VisionPilot PROPERTIES INSTALL_RPATH "${ONNXRUNTIME_ROOT}/lib")
+    install(TARGETS VisionPilot RUNTIME DESTINATION lib/${VP_ROS_PKG})
+    install(FILES
+            ${CMAKE_SOURCE_DIR}/config/H.yaml
+            ${CMAKE_SOURCE_DIR}/config/vision_pilot.conf
+            ${CMAKE_SOURCE_DIR}/config/vision_pilot_ros2.conf
+            ${CMAKE_SOURCE_DIR}/config/vision_pilot_test.conf
+            DESTINATION share/${VP_ROS_PKG}/config/)
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/assets/icons/"
+            DESTINATION "share/${VP_ROS_PKG}/assets/icons")
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/models/weights/"
+            DESTINATION "share/${VP_ROS_PKG}/modules/models/weights"
+            FILES_MATCHING PATTERN "*.onnx" PATTERN "trt_cache" EXCLUDE)
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/launch/"
+            DESTINATION "share/${VP_ROS_PKG}/launch")
+    return()
+endif ()
+
 install(TARGETS VisionPilot
         RUNTIME DESTINATION bin
 )

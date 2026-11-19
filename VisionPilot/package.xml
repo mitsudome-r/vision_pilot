@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>vision_pilot</name>
-  <version>1.0.0</version>
+  <version>1.2.0</version>
   <description>Autoware VisionPilot - Open-Sourced End-to-End AD/ADAS System</description>
 
   <maintainer email="zain.khawaja@autoware.org">Muhammad Zain Khawaja</maintainer>
@@ -18,6 +18,13 @@
   <depend>cv_bridge</depend>
   <depend>image_transport</depend>
   <depend>libopencv-dev</depend>
+  <depend>eigen</depend>
+  <depend>coinor-libipopt-dev</depend>
+  <!-- libcppad-dev has no rosdep key: install with `sudo apt install libcppad-dev` -->
+  <depend>nlohmann-json-dev</depend>
+  <depend>boost</depend>
+  <build_depend>python3-opencv</build_depend>
+  <build_depend>python3-numpy</build_depend>
 
   <!-- Testing dependencies -->
   <test_depend>ament_cmake_gtest</test_depend>

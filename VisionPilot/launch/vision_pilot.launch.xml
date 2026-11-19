@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!--
+  Generic ROS 2 launch file for VisionPilot.
+
+  VisionPilot reads its settings from key=value .conf files (not ROS parameters):
+    <config_dir>/vision_pilot.conf       core / vehicle / planner settings
+    <config_dir>/vision_pilot_ros2.conf  topics and ROS 2 interface selection
+    <config_dir>/H.yaml                  ground homography of the front camera
+  Files missing from <config_dir> fall back to $(find-pkg-share vision_pilot)/config
+  unless strict_config_dir is true.
+
+  The remaps below only take effect for topics that vision_pilot_ros2.conf sets to the
+  default /vision_pilot/... names (see config/vision_pilot_ros2.conf).
+
+  NOTE: VisionPilot creates several rclcpp nodes inside one process. Do NOT set the
+  `name` attribute on the node below: a __node remap would rename every node in the
+  process to the same name.
+-->
+<launch>
+  <arg name="config_dir" default="$(find-pkg-share vision_pilot)/config" description="directory containing vision_pilot.conf, vision_pilot_ros2.conf and H.yaml"/>
+  <arg name="share_dir" default="$(find-pkg-share vision_pilot)" description="install root of model weights and icons"/>
+  <arg name="strict_config_dir" default="false" description="true: every config file must exist in config_dir (no fallback to generic defaults)"/>
+  <!-- Topic remaps. The left-hand names are the ones written in vision_pilot_ros2.conf. -->
+  <arg name="input_image" default="/vision_pilot/input/image" description="sensor_msgs/Image (raw)"/>
+  <arg name="input_velocity" default="/vision_pilot/input/velocity_status" description="autoware: VelocityReport"/>
+  <arg name="output_control_cmd" default="/vision_pilot/output/control_cmd" description="autoware: Control"/>
+  <arg name="show_window" default="false" description="open the local OpenCV HUD window (requires DISPLAY)"/>
+  <arg name="debug_viz" default="false" description="debug telemetry overlay instead of the production HUD"/>
+  <arg name="use_sim_time" default="false"/>
+  <arg name="output" default="screen"/>
+
+  <let name="window_flag" value="" if="$(var show_window)"/>
+  <let name="window_flag" value="--no-window" unless="$(var show_window)"/>
+  <let name="debug_flag" value="--debug-viz" if="$(var debug_viz)"/>
+  <let name="debug_flag" value="" unless="$(var debug_viz)"/>
+  <let name="strict_env" value="1" if="$(var strict_config_dir)"/>
+  <let name="strict_env" value="" unless="$(var strict_config_dir)"/>
+
+  <node pkg="vision_pilot" exec="VisionPilot" output="$(var output)" args="$(var window_flag) $(var debug_flag)">
+    <env name="VISIONPILOT_CONFIG_DIR" value="$(var config_dir)"/>
+    <env name="VISIONPILOT_SHARE_DIR" value="$(var share_dir)"/>
+    <env name="VISIONPILOT_CONFIG_DIR_STRICT" value="$(var strict_env)"/>
+    <remap from="/vision_pilot/input/image" to="$(var input_image)"/>
+    <remap from="/vision_pilot/input/velocity_status" to="$(var input_velocity)"/>
+    <remap from="/vision_pilot/output/control_cmd" to="$(var output_control_cmd)"/>
+    <param name="use_sim_time" value="$(var use_sim_time)"/>
+  </node>
+</launch>

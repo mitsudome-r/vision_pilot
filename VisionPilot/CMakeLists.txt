@@ -1,6 +1,18 @@
 cmake_minimum_required(VERSION 3.22.1)
 
-project(VisionPilot VERSION 1.0 LANGUAGES CXX)
+# When built as a ROS 2 package (colcon), ament requires project() == package.xml <name>.
+if(DEFINED ENABLE_ROS2_INTERFACE)
+    set(_VP_ROS2_BUILD ${ENABLE_ROS2_INTERFACE})
+elseif(DEFINED ENV{ROS_DISTRO} AND DEFINED ENV{AMENT_PREFIX_PATH})
+    set(_VP_ROS2_BUILD ON)
+else()
+    set(_VP_ROS2_BUILD OFF)
+endif()
+if(_VP_ROS2_BUILD)
+    project(vision_pilot VERSION 1.2 LANGUAGES CXX)
+else()
+    project(VisionPilot VERSION 1.2 LANGUAGES CXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,7 +29,14 @@ set(BUILD_TESTING OFF CACHE BOOL "Build the testing tree")
 option(GPU "Enable GPU support" ON)
 
 # ROS2 packages
-option(ENABLE_ROS2_INTERFACE "Enable ROS2 support" OFF)
+# Defaults to ON when configured inside a sourced ROS 2 environment (e.g. colcon build),
+# so VisionPilot can be built as the ROS 2 package `vision_pilot` without extra flags.
+option(ENABLE_ROS2_INTERFACE "Enable ROS2 support" ${_VP_ROS2_BUILD})
+
+# ONNX Runtime location: -DONNXRUNTIME_ROOT=<path> or the ONNXRUNTIME_ROOT environment variable.
+if((NOT DEFINED ONNXRUNTIME_ROOT OR ONNXRUNTIME_ROOT STREQUAL "") AND DEFINED ENV{ONNXRUNTIME_ROOT})
+    set(ONNXRUNTIME_ROOT "$ENV{ONNXRUNTIME_ROOT}" CACHE PATH "ONNX Runtime root directory")
+endif()
 
 # Build testing code
 option(BUILD_TESTING "Build the testing tree" OFF)
@@ -50,6 +69,7 @@ add_subdirectory(modules/common)
 add_subdirectory(modules/sensing/image_preprocessing)
 
 if(ENABLE_ROS2_INTERFACE)
+    find_package(ament_cmake REQUIRED)
     add_subdirectory(modules/middleware_interfaces/ros2_interface/camera_ros2_interface)
     add_subdirectory(modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface)
 endif()
@@ -131,3 +151,9 @@ set(CPACK_SYSTEM_NAME "${ARCH_NAME}${PKG_SUFFIX}")
 set(CPACK_GENERATOR   "DEB")
 
 include(CPack)
+
+# ─── ROS 2 (ament) package registration ─────────────────────────────────────────
+# Must be the last call so that all install() rules above are registered.
+if(ENABLE_ROS2_INTERFACE)
+    ament_package()
+endif()
