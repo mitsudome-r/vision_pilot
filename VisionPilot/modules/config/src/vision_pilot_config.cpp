@@ -1,4 +1,5 @@
 #include <config/vision_pilot_config.hpp>
+#include <logging/logger.hpp>
 
 #include <cstdlib>
 #include <filesystem>
@@ -111,7 +112,9 @@ std::string source_label(const SourceConfig& source)
 Config load_vision_pilot_config()
 {
     // Load default config
-    auto kv = parse_conf(find_config("vision_pilot.conf"));
+    const std::string main_conf = find_config("vision_pilot.conf");
+    VP_INFO("[Config] %s", main_conf.c_str());
+    auto kv = parse_conf(main_conf);
     Config cfg;
 
     cfg.engine.provider     = optional(kv, "engine.provider",     "cpu");
@@ -150,7 +153,9 @@ Config load_vision_pilot_config()
 
     // Load ROS2 config config
 #ifdef ENABLE_ROS2_INTERFACE
-    kv = parse_conf(find_config("vision_pilot_ros2.conf"));
+    const std::string ros2_conf = find_config("vision_pilot_ros2.conf");
+    VP_INFO("[Config] %s", ros2_conf.c_str());
+    kv = parse_conf(ros2_conf);
     cfg.source.input_camera_topic = optional(kv, "source.input_camera_topic",  "/camera/image");
     cfg.vehicle_speed_topic = optional(kv, "vehicle_speed_topic", "/vehicle/speed");
     cfg.vehicle_steering_topic = optional(kv, "vehicle_steering_topic", "/vehicle/steering_cmd");

@@ -15,6 +15,7 @@ endif()
 
 target_link_libraries(config
     PUBLIC
+    common   # find_config
     engine   # for visionpilot::engine::EngineConfig in VisionPilotConfig
     models
 )

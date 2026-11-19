@@ -3,6 +3,7 @@
 #include <string>
 #include <engine/onnx_engine.hpp>
 #include <models/inference.hpp>
+#include <common/utils.hpp>
 
 namespace vpe = visionpilot::engine;
 namespace vpm = visionpilot::models;
@@ -52,15 +53,6 @@ struct Config {
     std::string rrd_log = "visionpilot.rrd";
 };
 
-static std::string find_config(const std::string& filename) {
-    const std::string local  = "config/" + filename;
-    const std::string system = "/usr/share/visionpilot/config/" + filename;
-
-    if (std::filesystem::exists(local))  return local;
-    if (std::filesystem::exists(system)) return system;
-
-    throw std::runtime_error("Config file not found: " + filename);
-}
 
 // Load from key=value .conf file. Expands ~ to $HOME.
 // Throws std::runtime_error on missing or invalid config.

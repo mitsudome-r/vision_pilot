@@ -1,4 +1,5 @@
 #include <visualization/visualization.hpp>
+#include <common/utils.hpp>
 
 #if defined(ENABLE_OCCUPANCY)
 #include <visualization/occupancy_bridge.hpp>
@@ -121,6 +122,7 @@ static std::string resolve_icons_dir(const std::string & hint)
         "/usr/share/visionpilot/assets/icons"}) {
     if (fs::is_directory(c)) return std::string(c);
   }
+  if (const auto p = find_resource("assets/icons"); !p.empty()) return p;
   return {};
 }
 

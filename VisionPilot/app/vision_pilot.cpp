@@ -106,6 +106,7 @@ int main(int argc, char** argv)
     const cv::Size net_size(vm::AutoDrive::NET_W, vm::AutoDrive::NET_H);
     cv::Mat frame, warped, resized;
     bool h_resized_set = false;
+    VP_INFO("[Config] %s", find_config("H.yaml").c_str());
     cv::Mat H = load_matrix("H.yaml", "H");
     while (true)
     {

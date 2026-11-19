@@ -1,14 +1,62 @@
 #include <common/utils.hpp>
 
+#include <cstdlib>
+#include <stdexcept>
+#include <vector>
+
+namespace {
+
+std::string env_or_empty(const char* name)
+{
+    const char* v = std::getenv(name);
+    return (v && *v) ? std::string(v) : std::string();
+}
+
+}  // namespace
+
+// Search order (first hit wins; only step 1 when VISIONPILOT_CONFIG_DIR_STRICT is set):
+//   1. $VISIONPILOT_CONFIG_DIR/<filename>      (e.g. vehicle-specific config set by a launch file)
+//   2. ./config/<filename>                     (running from the build/source tree)
+//   3. $VISIONPILOT_SHARE_DIR/config/<filename> (ROS 2 install: share/vision_pilot)
+//   4. /usr/share/visionpilot/config/<filename> (Debian package / Docker image)
 std::string find_config(const std::string& filename)
 {
-    const std::string local = "config/" + filename;
-    const std::string system = "/usr/share/visionpilot/config/" + filename;
+    std::vector<std::string> candidates;
+    const auto config_dir = env_or_empty("VISIONPILOT_CONFIG_DIR");
+    if (!config_dir.empty())
+        candidates.push_back(config_dir + "/" + filename);
 
-    if (std::filesystem::exists(local)) return local;
-    if (std::filesystem::exists(system)) return system;
+    // VISIONPILOT_CONFIG_DIR_STRICT=1: never fall back to the generic (passenger-car)
+    // defaults. Used by vehicle integrations so that a missing vehicle file is an error.
+    if (!config_dir.empty() && !env_or_empty("VISIONPILOT_CONFIG_DIR_STRICT").empty())
+    {
+        if (std::filesystem::exists(candidates.front())) return candidates.front();
+        throw std::runtime_error("Config file not found (strict): " + candidates.front());
+    }
+
+    candidates.push_back("config/" + filename);
+    if (const auto d = env_or_empty("VISIONPILOT_SHARE_DIR"); !d.empty())
+        candidates.push_back(d + "/config/" + filename);
+    candidates.push_back("/usr/share/visionpilot/config/" + filename);
+
+    for (const auto& c : candidates)
+        if (std::filesystem::exists(c)) return c;
 
     throw std::runtime_error("Config file not found: " + filename);
+}
+
+// Search order: ./<relpath>, $VISIONPILOT_SHARE_DIR/<relpath>, /usr/share/visionpilot/<relpath>
+std::string find_resource(const std::string& relpath)
+{
+    std::vector<std::string> candidates{relpath};
+    if (const auto d = env_or_empty("VISIONPILOT_SHARE_DIR"); !d.empty())
+        candidates.push_back(d + "/" + relpath);
+    candidates.push_back("/usr/share/visionpilot/" + relpath);
+
+    for (const auto& c : candidates)
+        if (std::filesystem::exists(c)) return c;
+
+    return {};
 }
 
 cv::Mat load_matrix(const std::string& filename, const std::string& matrix)

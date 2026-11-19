@@ -54,13 +54,11 @@ std::vector<float> chw_01(const cv::Mat& bgr)
 }
 
 std::string find_model(const std::string& filename) {
-    const std::string local  = "modules/models/weights/" + filename;
-    const std::string system = "/usr/share/visionpilot/modules/models/weights/" + filename;
-
-    if (std::filesystem::exists(local))  return local;
-    if (std::filesystem::exists(system)) return system;
-
-    throw std::runtime_error("Config file not found: " + filename);
+    const std::string path = find_resource("modules/models/weights/" + filename);
+    if (path.empty())
+        throw std::runtime_error("Model weights not found: " + filename +
+                                 " (set VISIONPILOT_SHARE_DIR or run from the VisionPilot directory)");
+    return path;
 }
 
 }  // namespace

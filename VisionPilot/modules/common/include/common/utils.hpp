@@ -6,7 +6,13 @@
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 
+// Locate a config file. See utils.cpp for the search order
+// ($VISIONPILOT_CONFIG_DIR, ./config, $VISIONPILOT_SHARE_DIR/config, /usr/share/visionpilot/config).
 std::string find_config(const std::string& filename);
+
+// Locate a packaged resource (model weights, icons, ...) relative to the install root.
+// Returns an empty string when not found.
+std::string find_resource(const std::string& relpath);
 
 cv::Mat load_matrix(const std::string& filename, const std::string& matrix);
 
