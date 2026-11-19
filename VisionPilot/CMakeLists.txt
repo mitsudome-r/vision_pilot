@@ -31,10 +31,13 @@ option(ENABLE_RERUN "Log directly to a Rerun .rrd via the Rerun C++ SDK" OFF)
 set(Python3_EXECUTABLE /usr/bin/python3 CACHE FILEPATH "" FORCE)
 find_package(Python3 REQUIRED)
 
+# NOTE: homography_C_matrix.yaml is kept for reference / the Python tools only.
+# The application derives C from H.yaml at runtime (see common/utils.cpp).
 add_custom_target(generate_config ALL
         COMMAND Python3::Interpreter
-        ${CMAKE_SOURCE_DIR}/scripts/find_homography_C_matrix.py
-        --output ${CMAKE_BINARY_DIR}/config/homography_C_matrix.yaml
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/find_homography_C_matrix.py
+        --ground-h ${CMAKE_CURRENT_SOURCE_DIR}/config/H.yaml
+        --output ${CMAKE_CURRENT_BINARY_DIR}/config/homography_C_matrix.yaml
 )
 
 # Modules

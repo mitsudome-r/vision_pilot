@@ -4,7 +4,9 @@
 
 ImagePreprocessor::ImagePreprocessor()
 {
-    C_ = load_matrix("homography_C_matrix.yaml", "C");
+    // C is derived from H.yaml at runtime (instead of the build-time generated
+    // homography_C_matrix.yaml) so that it always matches the loaded H.
+    C_ = compute_homography_C_matrix(load_matrix("H.yaml", "H"));
 }
 
 void ImagePreprocessor::preprocess(const cv::Mat& image, cv::Mat& warped_image, cv::Mat& resized_image,
