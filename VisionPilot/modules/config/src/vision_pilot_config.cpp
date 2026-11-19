@@ -170,6 +170,18 @@ Config load_vision_pilot_config()
     cfg.vehicle_speed_topic = optional(kv, "vehicle_speed_topic", "/vehicle/speed");
     cfg.vehicle_steering_topic = optional(kv, "vehicle_steering_topic", "/vehicle/steering_cmd");
     cfg.vehicle_acceleration_topic = optional(kv, "vehicle_acceleration_topic", "/vehicle/throttle_cmd");
+
+    cfg.ros2_vehicle_interface     = optional(kv, "ros2.vehicle_interface", "generic");
+    if (cfg.ros2_vehicle_interface != "generic" && cfg.ros2_vehicle_interface != "autoware")
+        throw std::runtime_error("ros2.vehicle_interface must be 'generic' or 'autoware'");
+    cfg.ros2_camera_qos            = optional(kv, "ros2.camera_qos", "reliable");
+    if (cfg.ros2_camera_qos != "reliable" && cfg.ros2_camera_qos != "sensor_data")
+        throw std::runtime_error("ros2.camera_qos must be 'reliable' or 'sensor_data'");
+    cfg.autoware_velocity_topic    = optional(kv, "autoware.velocity_topic", cfg.autoware_velocity_topic);
+    cfg.autoware_control_cmd_topic = optional(kv, "autoware.control_cmd_topic", cfg.autoware_control_cmd_topic);
+    cfg.autoware_frame_id          = optional(kv, "autoware.frame_id", cfg.autoware_frame_id);
+    // With a ROS 2 build, the input always comes from ROS topics.
+    cfg.source.mode = SourceMode::Ros2;
 #endif
 
     // Load test configuration

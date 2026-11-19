@@ -17,6 +17,10 @@ if (ENABLE_ROS2_INTERFACE)
     target_link_libraries(VisionPilot PUBLIC rclcpp::rclcpp)
     target_link_libraries(VisionPilot PRIVATE camera_ros2_interface vehicle_ros2_interface)
     target_compile_definitions(VisionPilot PRIVATE ENABLE_ROS2_INTERFACE)
+    if (ENABLE_AUTOWARE_INTERFACE)
+        target_link_libraries(VisionPilot PRIVATE autoware_vehicle_ros2_interface)
+        target_compile_definitions(VisionPilot PRIVATE ENABLE_AUTOWARE_INTERFACE=1)
+    endif ()
 endif ()
 
 target_link_libraries(VisionPilot

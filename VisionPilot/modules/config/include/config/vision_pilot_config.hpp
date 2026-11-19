@@ -52,6 +52,17 @@ struct Config {
     double lon_min_gap         = 2.0;     // IDM s0 (m)
     double lon_road_friction   = 0.2;     // mu used for curve speed limit
 
+    // ── ROS 2 middleware selection (only used with ENABLE_ROS2_INTERFACE) ──
+    // "generic"  : std_msgs/Float64 topics (original VisionPilot interface)
+    // "autoware" : autoware_vehicle_msgs/VelocityReport in,
+    //              autoware_control_msgs/Control out
+    std::string ros2_vehicle_interface = "generic";
+    // "reliable" (original) or "sensor_data" (best effort, matches most camera drivers)
+    std::string ros2_camera_qos = "reliable";
+    std::string autoware_velocity_topic    = "/vehicle/status/velocity_status";
+    std::string autoware_control_cmd_topic = "/vision_pilot/control_cmd";
+    std::string autoware_frame_id          = "base_link";
+
     bool visualization_on = false;
     bool webrtc_on = false;
     int webrtc_port;

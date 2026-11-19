@@ -40,12 +40,15 @@ public:
     *
     * @param topic_name The name of the ROS2 topic to subscribe to ("/camera/image_raw", etc.)
     * @param node_name The name of the ROS2 node (default: "ros2_image_subscriber")
+    * @param use_sensor_data_qos true: best-effort (compatible with best-effort camera drivers),
+    *                            false: reliable (original behaviour)
     *
     * Initializes ROS2 (rclcpp::init), creates internal node, subscribes to topic, and starts background spinning.
     */
     explicit CameraRos2Interface(
         const std::string& topic_name,
-        const std::string& node_name = "ros2_image_subscriber"
+        const std::string& node_name = "ros2_image_subscriber",
+        bool use_sensor_data_qos = false
     );
 
 

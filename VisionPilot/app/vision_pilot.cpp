@@ -24,9 +24,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <camera_ros2_interface/camera_ros2_interface.hpp>
 #include <vehicle_ros2_interface/vehicle_ros2_interface.hpp>
+#if ENABLE_AUTOWARE_INTERFACE
+#include <autoware_vehicle_ros2_interface/autoware_vehicle_ros2_interface.hpp>
+#endif
 #endif
 
 namespace ve = visionpilot::engine;
+
 namespace vm = visionpilot::models;
 namespace vd = visionpilot::debug;
 
@@ -54,10 +58,27 @@ int main(int argc, char** argv)
     std::shared_ptr<VehicleInterface> vehicle_interface;
 #if ENABLE_ROS2_INTERFACE
     rclcpp::init(argc, argv);
-    camera_interface = std::make_unique<CameraRos2Interface>(cfg.source.input_camera_topic);
-    vehicle_interface = std::make_shared<VehicleRos2Interface>(cfg.vehicle_speed_topic,
-                                                               cfg.vehicle_steering_topic,
-                                                               cfg.vehicle_acceleration_topic);
+    camera_interface = std::make_unique<CameraRos2Interface>(
+        cfg.source.input_camera_topic, "vision_pilot_camera_interface",
+        cfg.ros2_camera_qos == "sensor_data");
+    if (cfg.ros2_vehicle_interface == "autoware")
+    {
+#if ENABLE_AUTOWARE_INTERFACE
+        AutowareVehicleRos2Interface::Config aw;
+        aw.velocity_topic    = cfg.autoware_velocity_topic;
+        aw.control_cmd_topic = cfg.autoware_control_cmd_topic;
+        vehicle_interface = std::make_shared<AutowareVehicleRos2Interface>(aw);
+#else
+        VP_ERROR("ros2.vehicle_interface=autoware but VisionPilot was built without Autoware messages");
+        return 1;
+#endif
+    }
+    else
+    {
+        vehicle_interface = std::make_shared<VehicleRos2Interface>(cfg.vehicle_speed_topic,
+                                                                   cfg.vehicle_steering_topic,
+                                                                   cfg.vehicle_acceleration_topic);
+    }
 #else
     if (cfg.source.mode == SourceMode::Video)
     {
@@ -123,6 +144,9 @@ int main(int argc, char** argv)
     cv::Mat H = load_matrix("H.yaml", "H");
     while (true)
     {
+#if ENABLE_ROS2_INTERFACE
+        if (!rclcpp::ok()) break;  // SIGINT from ros2 launch
+#endif
         auto [ok, frame] = camera_interface->get_latest_frame();
         if (!ok || frame.empty())
         {

@@ -7,7 +7,8 @@
 
 CameraRos2Interface::CameraRos2Interface(
     const std::string& topic_name,
-    const std::string& node_name
+    const std::string& node_name,
+    const bool use_sensor_data_qos
 ) : topic_name(topic_name)
 {
     // Init ROS2 once
@@ -33,9 +34,17 @@ CameraRos2Interface::CameraRos2Interface(
     //      - https://docs.ros.org/en/iron/Concepts/Intermediate/About-Quality-of-Service-Settings.html
     //      - https://docs.ros2.org/foxy/api/rclcpp/classrclcpp_1_1QoS.html
 
+    // NOTE: a reliable subscriber does not match a best-effort publisher. Most camera
+    // drivers (and Autoware's sensing pipeline) publish images with the sensor-data
+    // (best-effort) profile, so use_sensor_data_qos should be true in that case.
     auto qos_profile = rclcpp::QoS(rclcpp::KeepLast(qos_history_depth))
-                       .reliable()
                        .durability_volatile();
+    if (use_sensor_data_qos)
+        qos_profile.best_effort();
+    else
+        qos_profile.reliable();
+    RCLCPP_INFO(node->get_logger(), "  QoS reliability: %s",
+                use_sensor_data_qos ? "best_effort" : "reliable");
 
     image_subscription = node->create_subscription<sensor_msgs::msg::Image>(
         topic_name,

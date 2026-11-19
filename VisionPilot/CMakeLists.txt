@@ -72,6 +72,19 @@ if(ENABLE_ROS2_INTERFACE)
     find_package(ament_cmake REQUIRED)
     add_subdirectory(modules/middleware_interfaces/ros2_interface/camera_ros2_interface)
     add_subdirectory(modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface)
+
+    # Autoware message interface (VelocityReport in / Control out). Built automatically
+    # when the Autoware message packages are available in the workspace.
+    find_package(autoware_control_msgs QUIET)
+    find_package(autoware_vehicle_msgs QUIET)
+    if(autoware_control_msgs_FOUND AND autoware_vehicle_msgs_FOUND)
+        set(ENABLE_AUTOWARE_INTERFACE ON)
+        add_subdirectory(modules/middleware_interfaces/ros2_interface/autoware_vehicle_ros2_interface)
+        message(STATUS "VisionPilot: Autoware ROS 2 interface enabled")
+    else()
+        set(ENABLE_AUTOWARE_INTERFACE OFF)
+        message(STATUS "VisionPilot: Autoware messages not found, Autoware ROS 2 interface disabled")
+    endif()
 endif()
 
 add_subdirectory(modules/engine)
