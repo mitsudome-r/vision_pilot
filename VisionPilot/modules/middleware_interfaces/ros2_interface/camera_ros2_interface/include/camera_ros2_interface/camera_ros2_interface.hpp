@@ -3,6 +3,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
 #if __has_include(<cv_bridge/cv_bridge.h>)
 #include <cv_bridge/cv_bridge.h>
 #elif __has_include(<cv_bridge/cv_bridge.hpp>)
@@ -42,13 +43,18 @@ public:
     * @param node_name The name of the ROS2 node (default: "ros2_image_subscriber")
     * @param use_sensor_data_qos true: best-effort (compatible with best-effort camera drivers),
     *                            false: reliable (original behaviour)
+    * @param use_compressed true: subscribe sensor_msgs/CompressedImage (JPEG / PNG) on topic_name
+    *                       and decode it in-process with cv::imdecode. This avoids an external
+    *                       image_transport republish node, whose subscription is always reliable
+    *                       on Humble and therefore never matches best-effort camera drivers.
     *
     * Initializes ROS2 (rclcpp::init), creates internal node, subscribes to topic, and starts background spinning.
     */
     explicit CameraRos2Interface(
         const std::string& topic_name,
         const std::string& node_name = "ros2_image_subscriber",
-        bool use_sensor_data_qos = false
+        bool use_sensor_data_qos = false,
+        bool use_compressed = false
     );
 
 
@@ -134,6 +140,19 @@ private:
         const sensor_msgs::msg::Image::SharedPtr msg
     );
 
+    /**
+    * @brief Callback for sensor_msgs/CompressedImage (use_compressed = true).
+    *        Decodes JPEG / PNG payloads to BGR8 with cv::imdecode.
+    */
+    void compressed_image_callback(
+        const sensor_msgs::msg::CompressedImage::SharedPtr msg
+    );
+
+    /**
+    * @brief Store a decoded BGR frame in the single latest-frame slot (thread-safe).
+    */
+    void store_frame(cv::Mat&& frame);
+
 
     /**
     * @brief Thread-safe conversion from ROS2 Image message to cv::Mat
@@ -152,6 +171,7 @@ private:
     // ROS2 node and subscription (managed internally)
     std::shared_ptr<rclcpp::Node> node;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_subscription;
+    rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr compressed_image_subscription;
     std::thread spin_thread;
 
     // Single latest-frame slot with thread safety

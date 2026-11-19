@@ -59,6 +59,11 @@ struct Config {
     std::string ros2_vehicle_interface = "generic";
     // "reliable" (original) or "sensor_data" (best effort, matches most camera drivers)
     std::string ros2_camera_qos = "reliable";
+    // "raw"        : sensor_msgs/Image on source.input_camera_topic
+    // "compressed" : sensor_msgs/CompressedImage (JPEG / PNG) on source.input_camera_topic,
+    //                decoded in-process (no image_transport republish node needed)
+    // Can be overridden on the command line with --camera-transport raw|compressed.
+    std::string ros2_camera_transport = "raw";
     std::string autoware_velocity_topic    = "/vehicle/status/velocity_status";
     std::string autoware_control_cmd_topic = "/vision_pilot/control_cmd";
     std::string autoware_frame_id          = "base_link";

@@ -21,7 +21,8 @@
   <arg name="share_dir" default="$(find-pkg-share vision_pilot)" description="install root of model weights and icons"/>
   <arg name="strict_config_dir" default="false" description="true: every config file must exist in config_dir (no fallback to generic defaults)"/>
   <!-- Topic remaps. The left-hand names are the ones written in vision_pilot_ros2.conf. -->
-  <arg name="input_image" default="/vision_pilot/input/image" description="sensor_msgs/Image (raw)"/>
+  <arg name="input_image" default="/vision_pilot/input/image" description="sensor_msgs/Image (camera_transport:=raw) or sensor_msgs/CompressedImage (camera_transport:=compressed)"/>
+  <arg name="camera_transport" default="raw" description="raw | compressed (CompressedImage decoded in-process; overrides ros2.camera_transport)"/>
   <arg name="input_velocity" default="/vision_pilot/input/velocity_status" description="autoware: VelocityReport"/>
   <arg name="output_control_cmd" default="/vision_pilot/output/control_cmd" description="autoware: Control"/>
   <arg name="show_window" default="false" description="open the local OpenCV HUD window (requires DISPLAY)"/>
@@ -36,7 +37,7 @@
   <let name="strict_env" value="1" if="$(var strict_config_dir)"/>
   <let name="strict_env" value="" unless="$(var strict_config_dir)"/>
 
-  <node pkg="vision_pilot" exec="VisionPilot" output="$(var output)" args="$(var window_flag) $(var debug_flag)">
+  <node pkg="vision_pilot" exec="VisionPilot" output="$(var output)" args="$(var window_flag) $(var debug_flag) --camera-transport $(var camera_transport)">
     <env name="VISIONPILOT_CONFIG_DIR" value="$(var config_dir)"/>
     <env name="VISIONPILOT_SHARE_DIR" value="$(var share_dir)"/>
     <env name="VISIONPILOT_CONFIG_DIR_STRICT" value="$(var strict_env)"/>

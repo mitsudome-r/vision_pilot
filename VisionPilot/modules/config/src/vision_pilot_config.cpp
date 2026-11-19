@@ -177,6 +177,9 @@ Config load_vision_pilot_config()
     cfg.ros2_camera_qos            = optional(kv, "ros2.camera_qos", "reliable");
     if (cfg.ros2_camera_qos != "reliable" && cfg.ros2_camera_qos != "sensor_data")
         throw std::runtime_error("ros2.camera_qos must be 'reliable' or 'sensor_data'");
+    cfg.ros2_camera_transport      = optional(kv, "ros2.camera_transport", "raw");
+    if (cfg.ros2_camera_transport != "raw" && cfg.ros2_camera_transport != "compressed")
+        throw std::runtime_error("ros2.camera_transport must be 'raw' or 'compressed'");
     cfg.autoware_velocity_topic    = optional(kv, "autoware.velocity_topic", cfg.autoware_velocity_topic);
     cfg.autoware_control_cmd_topic = optional(kv, "autoware.control_cmd_topic", cfg.autoware_control_cmd_topic);
     cfg.autoware_frame_id          = optional(kv, "autoware.frame_id", cfg.autoware_frame_id);

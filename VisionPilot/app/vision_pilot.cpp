@@ -52,6 +52,18 @@ int main(int argc, char** argv)
         const std::string arg(argv[i]);
         if (arg == "--debug-viz") debug_viz = true;
         else if (arg == "--no-window") show_window = false;
+        else if (arg == "--camera-transport" && i + 1 < argc)
+        {
+            // Overrides ros2.camera_transport (lets launch files choose raw / compressed
+            // without a separate .conf per transport).
+            const std::string v(argv[++i]);
+            if (v != "raw" && v != "compressed")
+            {
+                VP_ERROR("--camera-transport must be 'raw' or 'compressed' (got '%s')", v.c_str());
+                return 1;
+            }
+            cfg.ros2_camera_transport = v;
+        }
     }
 
     std::shared_ptr<CameraInterface> camera_interface;
@@ -60,7 +72,8 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
     camera_interface = std::make_unique<CameraRos2Interface>(
         cfg.source.input_camera_topic, "vision_pilot_camera_interface",
-        cfg.ros2_camera_qos == "sensor_data");
+        cfg.ros2_camera_qos == "sensor_data",
+        cfg.ros2_camera_transport == "compressed");
     if (cfg.ros2_vehicle_interface == "autoware")
     {
 #if ENABLE_AUTOWARE_INTERFACE

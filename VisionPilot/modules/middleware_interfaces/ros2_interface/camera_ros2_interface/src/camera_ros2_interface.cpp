@@ -4,11 +4,14 @@
 #include <memory>
 #include <thread>
 
+#include <opencv2/imgcodecs.hpp>
+
 
 CameraRos2Interface::CameraRos2Interface(
     const std::string& topic_name,
     const std::string& node_name,
-    const bool use_sensor_data_qos
+    const bool use_sensor_data_qos,
+    const bool use_compressed
 ) : topic_name(topic_name)
 {
     // Init ROS2 once
@@ -46,14 +49,32 @@ CameraRos2Interface::CameraRos2Interface(
     RCLCPP_INFO(node->get_logger(), "  QoS reliability: %s",
                 use_sensor_data_qos ? "best_effort" : "reliable");
 
-    image_subscription = node->create_subscription<sensor_msgs::msg::Image>(
-        topic_name,
-        qos_profile,
-        [this](const sensor_msgs::msg::Image::SharedPtr msg)
-        {
-            this->image_callback(msg);
-        }
-    );
+    RCLCPP_INFO(node->get_logger(), "  Transport: %s",
+                use_compressed ? "compressed (sensor_msgs/CompressedImage, decoded in-process)"
+                               : "raw (sensor_msgs/Image)");
+
+    if (use_compressed)
+    {
+        compressed_image_subscription = node->create_subscription<sensor_msgs::msg::CompressedImage>(
+            topic_name,
+            qos_profile,
+            [this](const sensor_msgs::msg::CompressedImage::SharedPtr msg)
+            {
+                this->compressed_image_callback(msg);
+            }
+        );
+    }
+    else
+    {
+        image_subscription = node->create_subscription<sensor_msgs::msg::Image>(
+            topic_name,
+            qos_profile,
+            [this](const sensor_msgs::msg::Image::SharedPtr msg)
+            {
+                this->image_callback(msg);
+            }
+        );
+    }
 
     RCLCPP_INFO(node->get_logger(), "ROS2 Image Subscriber initialized successfully");
 
@@ -102,6 +123,59 @@ void CameraRos2Interface::image_callback(
         return;
     };
 
+    store_frame(std::move(cv_image));
+};
+
+
+void CameraRos2Interface::compressed_image_callback(
+    const sensor_msgs::msg::CompressedImage::SharedPtr msg
+)
+{
+    if (!msg)
+    {
+        RCLCPP_WARN(node->get_logger(), "Received null compressed image message");
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lock(stats_mutex);
+        stats.frames_received++;
+        stats.last_encoding = msg->format;
+    }
+
+    // format is e.g. "jpeg", "bgr8; jpeg compressed bgr8" or "rgb8; png compressed bgr8".
+    // compressed_image_transport always stores the payload in BGR order for colour images,
+    // so IMREAD_COLOR (BGR) is the right target. compressedDepth is a different container
+    // (header + PNG of 16UC1/32FC1) and cannot be used as a camera frame.
+    cv::Mat cv_image;
+    if (msg->format.find("compressedDepth") == std::string::npos && !msg->data.empty())
+    {
+        try
+        {
+            cv_image = cv::imdecode(msg->data, cv::IMREAD_COLOR);
+        }
+        catch (const cv::Exception& e)
+        {
+            RCLCPP_ERROR_THROTTLE(node->get_logger(), *node->get_clock(), 2000,
+                                  "cv::imdecode threw: %s", e.what());
+        }
+    }
+
+    if (cv_image.empty())
+    {
+        std::lock_guard<std::mutex> lock(stats_mutex);
+        stats.conversion_errors++;
+        RCLCPP_WARN_THROTTLE(node->get_logger(), *node->get_clock(), 2000,
+                             "Failed to decode compressed image (format: '%s', %zu bytes)",
+                             msg->format.c_str(), msg->data.size());
+        return;
+    }
+
+    store_frame(std::move(cv_image));
+};
+
+
+void CameraRos2Interface::store_frame(cv::Mat&& cv_image)
+{
     // Store frame in single latest-frame slot with thread safety
     {
         std::lock_guard<std::mutex> lock(frame_mutex);
@@ -117,7 +191,7 @@ void CameraRos2Interface::image_callback(
         is_stream_started = true;
 
         // Store latest frame
-        latest_frame = cv_image.clone(); // Clone to ensure independent memory
+        latest_frame = std::move(cv_image); // Callers pass freshly allocated (owned) frames
         has_latest_frame = true;
     }
 };
