@@ -52,6 +52,13 @@ int main(int argc, char** argv)
         const std::string arg(argv[i]);
         if (arg == "--debug-viz") debug_viz = true;
         else if (arg == "--no-window") show_window = false;
+        else if (arg == "--show-window")
+        {
+            // Explicit request for the local HUD window: also enables visualization even if
+            // visualization_on = false in vision_pilot.conf (e.g. the Autoware vehicle configs).
+            show_window = true;
+            cfg.visualization_on = true;
+        }
         else if (arg == "--camera-transport" && i + 1 < argc)
         {
             // Overrides ros2.camera_transport (lets launch files choose raw / compressed

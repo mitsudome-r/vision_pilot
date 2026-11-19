@@ -30,7 +30,7 @@
   <arg name="use_sim_time" default="false"/>
   <arg name="output" default="screen"/>
 
-  <let name="window_flag" value="" if="$(var show_window)"/>
+  <let name="window_flag" value="--show-window" if="$(var show_window)"/>
   <let name="window_flag" value="--no-window" unless="$(var show_window)"/>
   <let name="debug_flag" value="--debug-viz" if="$(var debug_viz)"/>
   <let name="debug_flag" value="" unless="$(var debug_viz)"/>
