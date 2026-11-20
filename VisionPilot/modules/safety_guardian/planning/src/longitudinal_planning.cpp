@@ -27,11 +27,20 @@ double LongitudinalPlanner::compute_acceleration(double kappa, double ego_v, boo
     // prevents (s_star / s)² from becoming catastrophically large.
     double s = std::max(0.5, cipo_distance);
 
-    // Free-road term: positive, drives ego toward speed_limit
-    double free_road_term = std::pow(ego_v / speed_limit, config_.delta);
+    // Free-road acceleration (drives ego toward speed_limit).
+    //   v <= v0 : plain IDM, a * (1 - (v / v0)^delta)        -> in [0, a]
+    //   v >  v0 : IIDM,     -b * (1 - (v0 / v)^(a*delta/b))  -> in [-b, 0)
+    // The plain IDM term grows with (v / v0)^delta when ego is above the limit
+    // (e.g. 20 m/s against a 5.55 m/s limit -> about -170 m/s^2).
+    double free_acc;
+    if (ego_v <= speed_limit)
+        free_acc = config_.a * (1.0 - std::pow(ego_v / speed_limit, config_.delta));
+    else
+        free_acc = -config_.b * (1.0 - std::pow(speed_limit / ego_v, config_.a * config_.delta / config_.b));
 
     // Interaction term: only active when a real lead vehicle is present.
     double interaction_term  = has_cipo ? std::pow(s_star / s, 2.0) : 0.0;
 
-    return config_.a * (1.0 - free_road_term - interaction_term);
+    const double acc = free_acc - config_.a * interaction_term;
+    return std::clamp(acc, -config_.max_decel, config_.a);
 }

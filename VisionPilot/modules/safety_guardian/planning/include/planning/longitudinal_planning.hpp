@@ -9,6 +9,9 @@ public:
         double speed_limit = 33.3;  // m/s
         double a     = 1.5;    // max comfortable acceleration  (m/s²)
         double b     = 3.0;    // comfortable deceleration      (m/s²)
+        // Hard bound on the commanded deceleration (m/s², positive). The output of
+        // compute_acceleration() is always within [-max_decel, a].
+        double max_decel = 5.0;
         double T     = 1.5;    // desired time-headway          (s)
         double s0    = 2.0;    // minimum gap at standstill     (m)
         double delta = 4.0;    // free-road acceleration exponent
@@ -18,7 +21,10 @@ public:
 
     explicit LongitudinalPlanner(const Config& config);
 
-    // Returns the edo acceleration for the current step.
+    // Returns the ego acceleration for the current step, bounded to [-max_decel, a].
+    // Above the (curvature-limited) speed limit the free-road term follows the IIDM
+    // (Treiber & Kesting), i.e. the vehicle slows down with at most the comfortable
+    // deceleration b instead of the unbounded -a * (v / v0)^delta of the plain IDM.
     //
     //   ego_v         : ego speed (m/s)
     //   has_cipo      : CIPO in front

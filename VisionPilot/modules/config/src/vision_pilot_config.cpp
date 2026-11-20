@@ -148,11 +148,16 @@ Config load_vision_pilot_config()
     cfg.understeer_gradient = parse_double(optional(kv, "vehicle.understeer_gradient", "0.0015"), "vehicle.understeer_gradient");
     cfg.lon_max_accel       = parse_double(optional(kv, "longitudinal.max_accel", "1.5"), "longitudinal.max_accel");
     cfg.lon_comfort_decel   = parse_double(optional(kv, "longitudinal.comfort_decel", "3.0"), "longitudinal.comfort_decel");
+    cfg.lon_max_decel       = parse_double(optional(kv, "longitudinal.max_decel", "5.0"), "longitudinal.max_decel");
     cfg.lon_time_headway    = parse_double(optional(kv, "longitudinal.time_headway", "1.5"), "longitudinal.time_headway");
     cfg.lon_min_gap         = parse_double(optional(kv, "longitudinal.min_gap", "2.0"), "longitudinal.min_gap");
     cfg.lon_road_friction   = parse_double(optional(kv, "longitudinal.road_friction", "0.2"), "longitudinal.road_friction");
     if (cfg.L < 0.0) throw std::runtime_error("L (wheelbase) must be > 0");
     if (cfg.max_steer_angle <= 0.0) throw std::runtime_error("vehicle.max_steer_angle must be > 0");
+    if (cfg.lon_max_accel <= 0.0 || cfg.lon_comfort_decel <= 0.0)
+        throw std::runtime_error("longitudinal.max_accel / comfort_decel must be > 0");
+    if (cfg.lon_max_decel < cfg.lon_comfort_decel)
+        throw std::runtime_error("longitudinal.max_decel must be >= longitudinal.comfort_decel");
 
     cfg.visualization_on = parse_bool(optional(kv, "visualization_on", "false"), "visualization_on");
     cfg.webrtc_on = parse_bool(optional(kv, "webrtc_on", "false"), "webrtc_on");
