@@ -1,5 +1,6 @@
 // VisionPilot — preprocess → inference → fusion → display
 #include <chrono>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <thread>
@@ -31,6 +32,47 @@
 
 namespace ve = visionpilot::engine;
 
+#if ENABLE_ROS2_INTERFACE
+// Read Autoware vehicle_info (wheel_base, max_steer_angle) from ROS parameters.
+// The launch file passes <vehicle_model>_description/config/vehicle_info.param.yaml as a
+// parameter file ("/**" matches every node in this process). Values found there override
+// L / vehicle.max_steer_angle from vision_pilot.conf so that VisionPilot always uses the same
+// vehicle geometry as the rest of Autoware.
+// Returns false (after logging) when `required` and a parameter is missing.
+static bool apply_vehicle_info_params(Config& cfg, bool required)
+{
+    auto node = std::make_shared<rclcpp::Node>(
+        "vision_pilot_vehicle_info",
+        rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true));
+    struct Item { const char* param; double& dst; const char* conf_key; };
+    const Item items[] = {{"wheel_base", cfg.L, "L"},
+                          {"max_steer_angle", cfg.max_steer_angle, "vehicle.max_steer_angle"}};
+    bool ok = true;
+    for (const auto& it : items)
+    {
+        rclcpp::Parameter p;
+        if (!node->get_parameter(it.param, p))
+        {
+            if (required)
+            {
+                VP_ERROR("[VehicleInfo] parameter '%s' not found in the vehicle_info parameter file", it.param);
+                ok = false;
+            }
+            continue;
+        }
+        const double v = p.get_type() == rclcpp::ParameterType::PARAMETER_INTEGER
+                             ? static_cast<double>(p.as_int()) : p.as_double();
+        if (it.dst > 0.0 && std::abs(it.dst - v) > 1e-9)
+            VP_INFO("[VehicleInfo] %s = %.4f overrides %s = %.4f from vision_pilot.conf",
+                    it.param, v, it.conf_key, it.dst);
+        else
+            VP_INFO("[VehicleInfo] %s = %.4f", it.param, v);
+        it.dst = v;
+    }
+    return ok;
+}
+#endif
+
 namespace vm = visionpilot::models;
 namespace vd = visionpilot::debug;
 
@@ -47,11 +89,13 @@ int main(int argc, char** argv)
     // ── CLI flags ─────────────────────────────────────────────────────────────
     bool show_window = true;
     bool debug_viz = false;
+    bool require_vehicle_info = false;  // set by launch files that pass a vehicle_info.param.yaml
     for (int i = 1; i < argc; ++i)
     {
         const std::string arg(argv[i]);
         if (arg == "--debug-viz") debug_viz = true;
         else if (arg == "--no-window") show_window = false;
+        else if (arg == "--require-vehicle-info") require_vehicle_info = true;
         else if (arg == "--show-window")
         {
             // Explicit request for the local HUD window: also enables visualization even if
@@ -77,6 +121,7 @@ int main(int argc, char** argv)
     std::shared_ptr<VehicleInterface> vehicle_interface;
 #if ENABLE_ROS2_INTERFACE
     rclcpp::init(argc, argv);
+    if (!apply_vehicle_info_params(cfg, require_vehicle_info)) return 1;
     camera_interface = std::make_unique<CameraRos2Interface>(
         cfg.source.input_camera_topic, "vision_pilot_camera_interface",
         cfg.ros2_camera_qos == "sensor_data",
@@ -113,6 +158,13 @@ int main(int argc, char** argv)
         vehicle_interface = std::make_shared<CanInterface>();
     }
 #endif
+
+    if (!(cfg.L > 0.0) || !(cfg.max_steer_angle > 0.0))
+    {
+        VP_ERROR("Wheelbase / max steer angle not set (L=%.3f, max_steer_angle=%.3f): set L in "
+                 "vision_pilot.conf or pass a vehicle_info.param.yaml (ROS 2)", cfg.L, cfg.max_steer_angle);
+        return 1;
+    }
 
     ImagePreprocessor preprocessor;
     ve::OnnxEngine engine(cfg.engine);

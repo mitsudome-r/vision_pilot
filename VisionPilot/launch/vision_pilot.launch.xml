@@ -28,16 +28,30 @@
   <arg name="show_window" default="false" description="open the local OpenCV HUD window (requires DISPLAY)"/>
   <arg name="debug_viz" default="false" description="debug telemetry overlay instead of the production HUD"/>
   <arg name="use_sim_time" default="false"/>
+  <arg name="vehicle_param_file" default="" description="Autoware vehicle_info.param.yaml. If set, its wheel_base / max_steer_angle are used instead of L / vehicle.max_steer_angle in vision_pilot.conf (and must be present)"/>
   <arg name="output" default="screen"/>
 
   <let name="window_flag" value="--show-window" if="$(var show_window)"/>
   <let name="window_flag" value="--no-window" unless="$(var show_window)"/>
   <let name="debug_flag" value="--debug-viz" if="$(var debug_viz)"/>
   <let name="debug_flag" value="" unless="$(var debug_viz)"/>
+  <let name="use_vehicle_info" value="$(eval &quot;'$(var vehicle_param_file)' != ''&quot;)"/>
   <let name="strict_env" value="1" if="$(var strict_config_dir)"/>
   <let name="strict_env" value="" unless="$(var strict_config_dir)"/>
 
-  <node pkg="vision_pilot" exec="VisionPilot" output="$(var output)" args="$(var window_flag) $(var debug_flag) --camera-transport $(var camera_transport)">
+  <!-- Two variants: <param from> cannot be made conditional in XML launch -->
+  <node pkg="vision_pilot" exec="VisionPilot" output="$(var output)" args="$(var window_flag) $(var debug_flag) --camera-transport $(var camera_transport) --require-vehicle-info" if="$(var use_vehicle_info)">
+    <env name="VISIONPILOT_CONFIG_DIR" value="$(var config_dir)"/>
+    <env name="VISIONPILOT_SHARE_DIR" value="$(var share_dir)"/>
+    <env name="VISIONPILOT_CONFIG_DIR_STRICT" value="$(var strict_env)"/>
+    <remap from="/vision_pilot/input/image" to="$(var input_image)"/>
+    <remap from="/vision_pilot/input/velocity_status" to="$(var input_velocity)"/>
+    <remap from="/vision_pilot/output/control_cmd" to="$(var output_control_cmd)"/>
+    <param name="use_sim_time" value="$(var use_sim_time)"/>
+    <!-- wheel_base / max_steer_angle override L / vehicle.max_steer_angle of vision_pilot.conf -->
+    <param from="$(var vehicle_param_file)"/>
+  </node>
+  <node pkg="vision_pilot" exec="VisionPilot" output="$(var output)" args="$(var window_flag) $(var debug_flag) --camera-transport $(var camera_transport)" unless="$(var use_vehicle_info)">
     <env name="VISIONPILOT_CONFIG_DIR" value="$(var config_dir)"/>
     <env name="VISIONPILOT_SHARE_DIR" value="$(var share_dir)"/>
     <env name="VISIONPILOT_CONFIG_DIR_STRICT" value="$(var strict_env)"/>

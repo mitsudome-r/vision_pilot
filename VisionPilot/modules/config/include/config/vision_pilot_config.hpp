@@ -41,7 +41,7 @@ struct Config {
     std::string vehicle_acceleration_topic;
 
     double speed_limit;
-    double L;   // Wheelbase (m)
+    double L = 0.0;   // Wheelbase (m). 0 = not set in the .conf (ROS 2: taken from vehicle_info wheel_base)
 
     // ── Vehicle / planner tuning (defaults = original passenger-car values) ──
     double max_steer_angle     = 0.442;   // tyre-angle limit (rad)

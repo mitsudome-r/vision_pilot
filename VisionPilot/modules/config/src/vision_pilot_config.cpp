@@ -139,7 +139,10 @@ Config load_vision_pilot_config()
     cfg.fusion_debug = parse_bool(optional(kv, "fusion.debug", "false"), "fusion.debug");
 
     cfg.speed_limit = parse_double(optional(kv, "speed_limit", ""), "speed_limit");
-    cfg.L = parse_double(optional(kv, "L", ""), "L");
+    // L may be omitted when it is provided by Autoware's vehicle_info.param.yaml (ROS parameter
+    // wheel_base, see app/vision_pilot.cpp). The final value is validated in main().
+    { const std::string raw = optional(kv, "L", "");
+      cfg.L = raw.empty() ? 0.0 : parse_double(raw, "L"); }
 
     cfg.max_steer_angle     = parse_double(optional(kv, "vehicle.max_steer_angle", "0.442"), "vehicle.max_steer_angle");
     cfg.understeer_gradient = parse_double(optional(kv, "vehicle.understeer_gradient", "0.0015"), "vehicle.understeer_gradient");
@@ -148,7 +151,7 @@ Config load_vision_pilot_config()
     cfg.lon_time_headway    = parse_double(optional(kv, "longitudinal.time_headway", "1.5"), "longitudinal.time_headway");
     cfg.lon_min_gap         = parse_double(optional(kv, "longitudinal.min_gap", "2.0"), "longitudinal.min_gap");
     cfg.lon_road_friction   = parse_double(optional(kv, "longitudinal.road_friction", "0.2"), "longitudinal.road_friction");
-    if (cfg.L <= 0.0) throw std::runtime_error("L (wheelbase) must be > 0");
+    if (cfg.L < 0.0) throw std::runtime_error("L (wheelbase) must be > 0");
     if (cfg.max_steer_angle <= 0.0) throw std::runtime_error("vehicle.max_steer_angle must be > 0");
 
     cfg.visualization_on = parse_bool(optional(kv, "visualization_on", "false"), "visualization_on");
